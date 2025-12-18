@@ -1,4 +1,5 @@
-// services/apiService.ts
+import { Platform } from "react-native";
+
 export type Candidate = {
   id: number;
   firstName: string;
@@ -6,35 +7,72 @@ export type Candidate = {
   email: string;
   phone: string;
   image: string;
-  company: {
-    name: string;
-  };
+  company: string;
   role: string;
 };
 
-const BASE_URL = "https://dummyjson.com";
+export type CreateCandidatePayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  company: string;
+  role: string;
+  image?: string;
+};
+
+const BASE_URL =
+  Platform.OS === "android" ? "http://192.168.1.28:8080" : "http://localhost:8080";
 
 export async function fetchCandidates(): Promise<Candidate[]> {
   try {
-    const res = await fetch(`${BASE_URL}/users`);
-    if (!res.ok) throw new Error("Failed to fetch users");
+    const res = await fetch(`${BASE_URL}/candidates`);
+    if (!res.ok) throw new Error("Failed to fetch candidates");
 
     const data = await res.json();
-    
-    const candidates: Candidate[] = data.users.map((u: any) => ({
+
+    return data.users.map((u: any): Candidate => ({
       id: u.id,
       firstName: u.firstName,
       lastName: u.lastName,
       email: u.email,
       phone: u.phone,
       image: u.image,
-      company: { name: u.company.name },
+      company: u.company,
       role: u.role,
     }));
-
-    return candidates;
   } catch (err) {
-    console.error("API Error:", err);
+    console.error("Candidate API Error:", err);
     throw err;
   }
+}
+
+export async function createCandidate(
+  payload: CreateCandidatePayload
+): Promise<Candidate> {
+  const res = await fetch(`${BASE_URL}/candidates`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || "Failed to create candidate");
+  }
+
+  const u = await res.json();
+
+  return {
+    id: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    phone: u.phone,
+    image: u.image,
+    company: u.company,
+    role: u.role,
+  };
 }

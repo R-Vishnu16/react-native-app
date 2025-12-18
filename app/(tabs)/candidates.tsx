@@ -1,25 +1,48 @@
-import { View, Text, FlatList, ActivityIndicator, Image } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  Image,
+  Pressable,
+} from "react-native";
 import { useEffect, useState } from "react";
-import { fetchCandidates, Candidate } from "@/services/candidateService";
+import { fetchCandidates, createCandidate, Candidate } from "@/services/candidateService";
+import { GradientPillButton } from "@/components/GradientPillButton";
+import { AddCandidateModal } from "@/components/AddCandidateModal";
+
 
 export default function Candidates() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+
+  const loadCandidates = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchCandidates();
+      setCandidates(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadCandidates = async () => {
-      try {
-        const data = await fetchCandidates();
-        setCandidates(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadCandidates();
   }, []);
+
+  const handleCreateCandidate = async (form: any) => {
+    try {
+      await createCandidate(form);
+      await loadCandidates(); // Refetch to ensure UI is in sync
+      setShowModal(false);
+    } catch (err) {
+      console.error("Create candidate failed", err);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -30,11 +53,25 @@ export default function Candidates() {
   }
 
   return (
-    <View className="flex-1 py-10 bg-gray-50 px-4">
+    <View className="flex-1 pt-10  bg-gray-50 px-4">
+      <View className="pt-12 pb-5 flex-row justify-around items-center">
+        <GradientPillButton
+          title="+ Add Candidate"
+          onPress={() => setShowModal(true)}
+        />
+
+        <GradientPillButton
+          title="View Logs"
+          onPress={() => {
+            console.log("View Logs pressed");
+          }}
+        />
+      </View>
+
       <FlatList
         data={candidates}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingTop: 32, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 64 }}
         renderItem={({ item }) => (
           <View className="bg-white p-4 mb-3 rounded-xl shadow-sm flex-row items-center">
             {item.image ? (
@@ -50,12 +87,19 @@ export default function Candidates() {
               <Text className="text-gray-600">{item.email}</Text>
               <Text className="text-gray-600">{item.phone}</Text>
               <Text className="text-sm text-purple-700 mt-1">
-                {item.company.name} • {item.role}
+                {item.company} • {item.role}
               </Text>
             </View>
           </View>
         )}
       />
+      <AddCandidateModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleCreateCandidate}
+      />
+
+
     </View>
   );
 }
