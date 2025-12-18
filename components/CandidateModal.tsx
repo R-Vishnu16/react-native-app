@@ -8,10 +8,11 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GradientPillButton } from "@/components/GradientPillButton";
+import { Candidate } from "@/services/candidateService";
 
-type AddCandidateModalProps = {
+type CandidateModalProps = {
   visible: boolean;
   onClose: () => void;
   onSubmit: (data: {
@@ -23,13 +24,15 @@ type AddCandidateModalProps = {
     role: string;
     image?: string;
   }) => void;
+  initialData?: Candidate | null;
 };
 
-export function AddCandidateModal({
+export function CandidateModal({
   visible,
   onClose,
   onSubmit,
-}: AddCandidateModalProps) {
+  initialData,
+}: CandidateModalProps) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -40,21 +43,47 @@ export function AddCandidateModal({
     image: "",
   });
 
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        firstName: initialData.firstName || "",
+        lastName: initialData.lastName || "",
+        email: initialData.email || "",
+        phone: initialData.phone || "",
+        company: initialData.company || "",
+        role: initialData.role || "",
+        image: initialData.image || "",
+      });
+    } else {
+      setForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        company: "",
+        role: "",
+        image: "",
+      });
+    }
+  }, [initialData, visible]);
+
   const handleChange = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = () => {
     onSubmit(form);
-    setForm({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      company: "",
-      role: "",
-      image: "",
-    });
+    if (!initialData) {
+      setForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        company: "",
+        role: "",
+        image: "",
+      });
+    }
     onClose();
   };
 
@@ -71,7 +100,7 @@ export function AddCandidateModal({
 
         <View className="bg-white rounded-t-3xl px-5 pt-6 pb-8 max-h-[90%]">
           <Text className="text-lg font-semibold text-gray-900 mb-4">
-            Add Candidate
+            {initialData ? "Edit Candidate" : "Add Candidate"}
           </Text>
 
           <ScrollView
@@ -115,7 +144,7 @@ export function AddCandidateModal({
                 </Text>
               </Pressable>
 
-              <GradientPillButton title="Save" onPress={handleSubmit} />
+              <GradientPillButton title={initialData ? "Update" : "Save"} onPress={handleSubmit} />
             </View>
           </ScrollView>
         </View>

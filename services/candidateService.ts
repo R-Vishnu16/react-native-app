@@ -76,3 +76,45 @@ export async function createCandidate(
     role: u.role,
   };
 }
+
+export async function updateCandidate(
+  id: number,
+  payload: CreateCandidatePayload
+): Promise<Candidate> {
+  const res = await fetch(`${BASE_URL}/candidates/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || "Failed to update candidate");
+  }
+
+  const u = await res.json();
+
+  return {
+    id: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    phone: u.phone,
+    image: u.image,
+    company: u.company,
+    role: u.role,
+  };
+}
+
+export async function deleteCandidate(id: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/candidates/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || "Failed to delete candidate");
+  }
+}

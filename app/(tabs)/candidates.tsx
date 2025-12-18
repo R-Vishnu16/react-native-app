@@ -5,17 +5,27 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  Alert,
 } from "react-native";
 import { useEffect, useState } from "react";
-import { fetchCandidates, createCandidate, Candidate } from "@/services/candidateService";
+import {
+  fetchCandidates,
+  createCandidate,
+  updateCandidate,
+  deleteCandidate,
+  Candidate,
+} from "@/services/candidateService";
 import { GradientPillButton } from "@/components/GradientPillButton";
-import { AddCandidateModal } from "@/components/AddCandidateModal";
-
+import { CandidateModal } from "@/components/CandidateModal";
+import { Pencil, Trash2 } from "lucide-react-native";
 
 export default function Candidates() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(
+    null
+  );
 
   const loadCandidates = async () => {
     try {
@@ -33,16 +43,54 @@ export default function Candidates() {
     loadCandidates();
   }, []);
 
-  const handleCreateCandidate = async (form: any) => {
+  const handleCreateOrUpdateCandidate = async (form: any) => {
     try {
-      await createCandidate(form);
-      await loadCandidates(); // Refetch to ensure UI is in sync
+      if (selectedCandidate) {
+        await updateCandidate(selectedCandidate.id, form);
+      } else {
+        await createCandidate(form);
+      }
+      await loadCandidates();
       setShowModal(false);
+      setSelectedCandidate(null);
     } catch (err) {
-      console.error("Create candidate failed", err);
+      console.error("Save candidate failed", err);
+      Alert.alert("Error", "Failed to save candidate");
     }
   };
 
+  const handleDeletePress = (candidate: Candidate) => {
+    Alert.alert(
+      "Confirm Deletion",
+      `Are you sure you want to delete ${candidate.firstName} ${candidate.lastName}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteCandidate(candidate.id);
+              await loadCandidates();
+            } catch (err) {
+              console.error("Delete candidate failed", err);
+              Alert.alert("Error", "Failed to delete candidate");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditPress = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setShowModal(true);
+  };
+
+  const handleAddPress = () => {
+    setSelectedCandidate(null);
+    setShowModal(true);
+  };
 
   if (loading) {
     return (
@@ -53,19 +101,10 @@ export default function Candidates() {
   }
 
   return (
-    <View className="flex-1 pt-10  bg-gray-50 px-4">
-      <View className="pt-12 pb-5 flex-row justify-around items-center">
-        <GradientPillButton
-          title="+ Add Candidate"
-          onPress={() => setShowModal(true)}
-        />
-
-        <GradientPillButton
-          title="View Logs"
-          onPress={() => {
-            console.log("View Logs pressed");
-          }}
-        />
+    <View className="flex-1 pt-10 px-4">
+      <View className="pt-10 pb-5 flex-row justify-between items-end">
+        <Text className="pl-4 text-3xl font-bold text-blue-900" style={{fontFamily : 'helevetica'}}>Candidates</Text>
+        <GradientPillButton title="+ Add" onPress={handleAddPress} />
       </View>
 
       <FlatList
@@ -90,16 +129,34 @@ export default function Candidates() {
                 {item.company} • {item.role}
               </Text>
             </View>
+
+            {/* Action Buttons */}
+            <View className="flex-col gap-3 ml-2">
+              <Pressable
+                onPress={() => handleEditPress(item)}
+                className="p-1"
+              >
+                <Pencil size={20} color="#266ddfff" />
+              </Pressable>
+              <Pressable
+                onPress={() => handleDeletePress(item)}
+                className="p-1"
+              >
+                <Trash2 size={20} color="#c47c7cff" />
+              </Pressable>
+            </View>
           </View>
         )}
       />
-      <AddCandidateModal
+      <CandidateModal
         visible={showModal}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleCreateCandidate}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedCandidate(null);
+        }}
+        onSubmit={handleCreateOrUpdateCandidate}
+        initialData={selectedCandidate}
       />
-
-
     </View>
   );
 }
